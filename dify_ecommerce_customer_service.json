@@ -1,0 +1,199 @@
+{
+  "name": "电商智能客服工作流",
+  "description": "基于Dify的电商客服自动回复系统，处理商品咨询、售后问题、物流跟踪等常见场景",
+  "version": "1.0.0",
+  "author": "AI电商实战团队",
+  "created_at": "2026-03-23",
+  "workflow": {
+    "nodes": [
+      {
+        "id": "welcome_node",
+        "type": "start",
+        "data": {
+          "title": "欢迎语",
+          "content": "欢迎光临！我是您的AI客服助手，可以为您提供商品咨询、订单查询、售后支持等服务。请告诉我您需要什么帮助？"
+        }
+      },
+      {
+        "id": "product_inquiry",
+        "type": "condition",
+        "data": {
+          "conditions": [
+            {
+              "condition": "用户询问商品信息",
+              "keywords": ["商品", "产品", "详情", "规格", "价格", "多少钱", "怎么卖"],
+              "next_node": "product_info_response"
+            }
+          ]
+        }
+      },
+      {
+        "id": "product_info_response",
+        "type": "llm",
+        "data": {
+          "model": "gpt-4",
+          "prompt": "你是一个电商客服助手。用户正在询问商品信息。请根据以下商品数据库提供准确、友好的回答。\n\n商品数据库：\n- 商品A：智能保温杯，容量500ml，保热12小时，价格129元\n- 商品B：无线蓝牙耳机，续航30小时，降噪功能，价格299元\n- 商品C：便携充电宝，20000mAh，支持快充，价格159元\n\n回答要求：\n1. 准确提供商品规格、价格\n2. 突出商品卖点\n3. 询问用户是否需要其他帮助",
+          "temperature": 0.3,
+          "max_tokens": 300
+        }
+      },
+      {
+        "id": "order_tracking",
+        "type": "condition",
+        "data": {
+          "conditions": [
+            {
+              "condition": "用户询问订单物流",
+              "keywords": ["订单", "物流", "快递", "发货", "到哪里了", "跟踪"],
+              "next_node": "tracking_response"
+            }
+          ]
+        }
+      },
+      {
+        "id": "tracking_response",
+        "type": "llm",
+        "data": {
+          "model": "gpt-4",
+          "prompt": "你是一个电商客服助手。用户正在查询订单物流信息。请根据以下格式提供物流状态：\n\n【订单状态模板】\n订单号：{订单号}\n当前状态：{已发货/运输中/已签收}\n物流公司：{快递公司}\n物流单号：{单号}\n预计送达：{预计时间}\n\n如果用户未提供订单号，请礼貌地询问订单号。",
+          "temperature": 0.2,
+          "max_tokens": 200
+        }
+      },
+      {
+        "id": "after_sales",
+        "type": "condition",
+        "data": {
+          "conditions": [
+            {
+              "condition": "用户询问售后问题",
+              "keywords": ["售后", "退货", "换货", "退款", "维修", "质量问题", "坏了"],
+              "next_node": "after_sales_response"
+            }
+          ]
+        }
+      },
+      {
+        "id": "after_sales_response",
+        "type": "llm",
+        "data": {
+          "model": "gpt-4",
+          "prompt": "你是一个电商客服助手。用户正在咨询售后问题。请根据以下售后政策提供帮助：\n\n【售后政策】\n1. 7天无理由退货：商品完好未使用\n2. 15天换货：商品存在质量问题\n3. 退款处理：审核通过后1-3工作日原路返回\n4. 维修服务：保修期内免费维修\n\n请先表达理解与歉意，然后提供具体解决方案。如果需要更多信息（如订单号、问题描述），请礼貌询问。",
+          "temperature": 0.3,
+          "max_tokens": 250
+        }
+      },
+      {
+        "id": "coupon_inquiry",
+        "type": "condition",
+        "data": {
+          "conditions": [
+            {
+              "condition": "用户询问优惠券",
+              "keywords": ["优惠券", "折扣", "优惠", "促销", "活动", "满减"],
+              "next_node": "coupon_response"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon_response",
+        "type": "llm",
+        "data": {
+          "model": "gpt-4",
+          "prompt": "你是一个电商客服助手。用户正在询问优惠活动。请根据以下活动信息提供回答：\n\n【当前活动】\n1. 新用户注册：领取10元无门槛优惠券\n2. 满199减30：全场通用\n3. 会员日折扣：每月15日会员享9折\n4. 限时秒杀：每晚8点特价商品\n\n请热情介绍活动，并引导用户参与。",
+          "temperature": 0.4,
+          "max_tokens": 200
+        }
+      },
+      {
+        "id": "fallback_node",
+        "type": "llm",
+        "data": {
+          "model": "gpt-4",
+          "prompt": "你是一个电商客服助手。用户的问题超出了预设场景。请礼貌地表示无法处理，并引导用户联系人工客服或提供其他帮助。\n\n示例回答：\"抱歉，这个问题我暂时无法处理。您可以联系我们的人工客服（工作时间9:00-18:00），或者告诉我其他我可以帮助您的问题。\"",
+          "temperature": 0.3,
+          "max_tokens": 150
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "welcome_node",
+        "target": "product_inquiry"
+      },
+      {
+        "source": "welcome_node",
+        "target": "order_tracking"
+      },
+      {
+        "source": "welcome_node",
+        "target": "after_sales"
+      },
+      {
+        "source": "welcome_node",
+        "target": "coupon_inquiry"
+      },
+      {
+        "source": "product_inquiry",
+        "target": "product_info_response"
+      },
+      {
+        "source": "order_tracking",
+        "target": "tracking_response"
+      },
+      {
+        "source": "after_sales",
+        "target": "after_sales_response"
+      },
+      {
+        "source": "coupon_inquiry",
+        "target": "coupon_response"
+      },
+      {
+        "source": "product_inquiry",
+        "target": "fallback_node",
+        "condition": "default"
+      },
+      {
+        "source": "order_tracking",
+        "target": "fallback_node",
+        "condition": "default"
+      },
+      {
+        "source": "after_sales",
+        "target": "fallback_node",
+        "condition": "default"
+      },
+      {
+        "source": "coupon_inquiry",
+        "target": "fallback_node",
+        "condition": "default"
+      }
+    ]
+  },
+  "config": {
+    "platform": "Dify",
+    "min_version": "0.5.0",
+    "export_format": "json",
+    "variables": {
+      "store_name": "您的店铺名称",
+      "customer_service_hours": "9:00-18:00",
+      "contact_email": "support@example.com"
+    }
+  },
+  "qa_database": [
+    {
+      "question": "这个保温杯能保热多久？",
+      "answer": "我们的智能保温杯采用双层真空技术，可以保热12小时以上，确保您全天都能喝到温水。"
+    },
+    {
+      "question": "耳机有降噪功能吗？",
+      "answer": "是的，这款无线蓝牙耳机搭载主动降噪技术，可以有效减少环境噪音，让您享受纯净的音乐体验。"
+    },
+    {
+      "question": "充电宝支持快充吗？",
+      "answer": "支持！这款便携充电宝支持PD快充协议，30分钟可为手机充电50%。"
+    }
+  ]
+}

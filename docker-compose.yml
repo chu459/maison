@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  # Dify AI 工作流引擎
+  dify-api:
+    image: langgenius/dify-api:latest
+    container_name: dify-api
+    ports:
+      - "5001:5001"
+    environment:
+      - MODE=api
+      - DB_TYPE=sqlite
+      - SQLITE_DATABASE=/app/dify.db
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-this}
+      - CONSOLE_API_URL=http://localhost:5001
+      - CONSOLE_WEB_URL=http://localhost:3000
+      - EDITION=SELF_HOSTED
+    volumes:
+      - ./data/dify:/app/storage
+      - ./data/dify.db:/app/dify.db
+    restart: unless-stopped
+
+  dify-web:
+    image: langgenius/dify-web:latest
+    container_name: dify-web
+    ports:
+      - "3000:3000"
+    environment:
+      - CONSOLE_API_URL=http://dify-api:5001
+      - CONSOLE_WEB_URL=http://localhost:3000
+      - SENTRY_DSN=
+    depends_on:
+      - dify-api
+    restart: unless-stopped
+
+  # 知识库向量数据库 (可选)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    restart: unless-stopped
+
+  # 本地模型服务 (Qwen2.5-7B)
+  qwen-api:
+    image: qwen/qwen2.5:7b-instruct
+    container_name: qwen-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=/app/model
+      - DEVICE=cpu  # 如有GPU可改为 cuda:0
+      - MAX_LENGTH=4096
+    volumes:
+      - ./models/qwen2.5-7b:/app/model
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # Coze Skill 运行环境 (Node.js)
+  coze-skill:
+    image: node:18-alpine
+    container_name: coze-skill
+    working_dir: /app
+    volumes:
+      - ./coze_ecommerce_skill.js:/app/index.js
+      - ./package.json:/app/package.json
+    ports:
+      - "3001:3001"
+    command: sh -c "npm install && node index.js"
+    environment:
+      - NODE_ENV=production
+      - COZE_API_KEY=${COZE_API_KEY}
+    restart: unless-stopped
+
+  # 电商客服前端演示界面
+  demo-frontend:
+    image: nginx:alpine
+    container_name: demo-frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./demo:/usr/share/nginx/html
+    depends_on:
+      - dify-api
+    restart: unless-stopped
+
+volumes:
+  dify-data:
+  qdrant-data:
+
+networks:
+  default:
+    name: ai-customer-service-network
+
+# 一键启动命令：
+# docker-compose up -d
+#
+# 一键停止命令：
+# docker-compose down
+#
+# 查看日志：
+# docker-compose logs -f dify-api
+#
+# 初始化步骤：
+# 1. 克隆仓库：git clone <repo-url>
+# 2. 下载模型：mkdir -p models/qwen2.5-7b && 从ModelScope下载模型文件
+# 3. 配置环境变量：cp .env.example .env 并编辑
+# 4. 启动服务：docker-compose up -d
+# 5. 访问Dify控制台：http://localhost:3000
+# 6. 导入工作流：dify_ecommerce_customer_service_workflow.json
+# 7. 配置Coze Skill：部署到Coze平台或本地运行
